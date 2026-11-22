@@ -1,0 +1,76 @@
+import pandas as pd
+from sklearn.preprocessing import OrdinalEncoder
+from sklearn.tree import DecisionTreeClassifier, export_text
+
+# 1. Prepare the PlayTennis Dataset
+data = {
+    'Outlook': ['Sunny', 'Sunny', 'Overcast', 'Rain', 'Rain', 'Rain', 'Overcast',
+                'Sunny', 'Sunny', 'Rain', 'Sunny', 'Overcast', 'Overcast', 'Rain'],
+    'Temperature': ['Hot', 'Hot', 'Hot', 'Mild', 'Cool', 'Cool', 'Cool',
+                    'Mild', 'Cool', 'Mild', 'Mild', 'Mild', 'Hot', 'Mild'],
+    'Humidity': ['High', 'High', 'High', 'High', 'Normal', 'Normal', 'Normal',
+                 'High', 'Normal', 'Normal', 'Normal', 'High', 'Normal', 'High'],
+    'Wind': ['Weak', 'Strong', 'Weak', 'Weak', 'Weak', 'Strong', 'Strong',
+             'Weak', 'Weak', 'Weak', 'Strong', 'Strong', 'Weak', 'Strong'],
+    'PlayTennis': ['No', 'No', 'Yes', 'Yes', 'Yes', 'No', 'Yes',
+                   'No', 'Yes', 'Yes', 'Yes', 'Yes', 'Yes', 'No']
+}
+
+df = pd.DataFrame(data)
+
+# Separate features (X) and target label (y)
+X = df[['Outlook', 'Temperature', 'Humidity', 'Wind']]
+y = df['PlayTennis']
+
+# 2. Encode categorical text data into numerical format
+encoder = OrdinalEncoder()
+X_encoded = encoder.fit_transform(X)
+
+# 3. Train the Decision Tree using Entropy (ID3 equivalent criterion)
+# Setting splitter='best' and max_depth/min_samples mirrors standard ID3 behavior
+clf = DecisionTreeClassifier(criterion='entropy', random_state=42)
+clf.fit(X_encoded, y)
+
+# Print the text-based decision tree structure
+print("--- Generated Decision Tree Structure ---")
+tree_rules = export_text(clf, feature_names=list(X.columns))
+print(tree_rules)
+
+# 4. Classify a New Sample
+# New Sample: Outlook = Sunny, Temperature = Cool, Humidity = Normal, Wind = Strong
+new_sample = [['Sunny', 'Cool', 'Normal', 'Strong']]
+new_sample_encoded = encoder.transform(new_sample)
+
+prediction = clf.predict(new_sample_encoded)
+
+print("\n--- New Sample Classification ---")
+print(f"Sample Features: Outlook=Sunny, Temperature=Cool, Humidity=Normal, Wind=Strong")
+print(f"Predicted PlayTennis: {prediction[0]}")
+     
+--- Generated Decision Tree Structure ---
+|--- Outlook <= 0.50
+|   |--- class: Yes
+|--- Outlook >  0.50
+|   |--- Humidity <= 0.50
+|   |   |--- Outlook <= 1.50
+|   |   |   |--- Wind <= 0.50
+|   |   |   |   |--- class: No
+|   |   |   |--- Wind >  0.50
+|   |   |   |   |--- class: Yes
+|   |   |--- Outlook >  1.50
+|   |   |   |--- class: No
+|   |--- Humidity >  0.50
+|   |   |--- Wind <= 0.50
+|   |   |   |--- Temperature <= 1.00
+|   |   |   |   |--- class: No
+|   |   |   |--- Temperature >  1.00
+|   |   |   |   |--- class: Yes
+|   |   |--- Wind >  0.50
+|   |   |   |--- class: Yes
+
+
+--- New Sample Classification ---
+Sample Features: Outlook=Sunny, Temperature=Cool, Humidity=Normal, Wind=Strong
+Predicted PlayTennis: No
+/usr/local/lib/python3.13/dist-packages/sklearn/utils/validation.py:2739: UserWarning: X does not have valid feature names, but OrdinalEncoder was fitted with feature names
+  warnings.warn(
