@@ -1,0 +1,29 @@
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import GaussianNB
+import matplotlib.pyplot as plt
+from sklearn.metrics import (accuracy_score, confusion_matrix,
+                             ConfusionMatrixDisplay, classification_report)
+
+iris = load_iris()
+X_train, X_test, y_train, y_test = train_test_split(
+    iris.data, iris.target, test_size=0.2, random_state=42, stratify=iris.target)
+
+model = GaussianNB()
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+
+print("Accuracy:", round(accuracy_score(y_test, y_pred), 4))
+print("Confusion matrix:\n", confusion_matrix(y_test, y_pred))
+print("\nClassification report:\n",
+      classification_report(y_test, y_pred, target_names=iris.target_names))
+
+sample = [[6.0, 2.9, 4.5, 1.5]]
+print("Predicted species for", sample[0], ":", iris.target_names[model.predict(sample)[0]])
+print("Class probabilities:", model.predict_proba(sample).round(4)[0])
+
+ConfusionMatrixDisplay(confusion_matrix(y_test, y_pred),
+                       display_labels=iris.target_names).plot(cmap="Blues")
+plt.title("Iris - Naive Bayes")
+plt.show()
+     
