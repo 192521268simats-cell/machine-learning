@@ -1,0 +1,115 @@
+"""
+FIND-S Algorithm
+----------------
+Finds the most specific hypothesis consistent with all POSITIVE training examples.
+
+Notation:
+    '0' -> no value is acceptable (most specific)
+    '?' -> any value is acceptable (most general)
+"""
+
+import csv
+import io
+
+# Training data: EnjoySport (last column is the target concept)
+DATA = """Sky,AirTemp,Humidity,Wind,Water,Forecast,EnjoySport
+Sunny,Warm,Normal,Strong,Warm,Same,Yes
+Sunny,Warm,High,Strong,Warm,Same,Yes
+Rainy,Cold,High,Strong,Warm,Change,No
+Sunny,Warm,High,Strong,Cool,Change,Yes
+"""
+
+
+def load_data(source=None):
+    """Load data from a CSV file path, or from the built-in sample if None."""
+    if source is None:
+        f = io.StringIO(DATA)
+    else:
+        f = open(source, newline="")
+    with f:
+        reader = csv.reader(f)
+        header = next(reader)
+        rows = [row for row in reader if row]
+    return header, rows
+
+
+def find_s(rows, positive_label="Yes"):
+    n_attrs = len(rows[0]) - 1
+    hypothesis = ["0"] * n_attrs  # start with the most specific hypothesis
+
+    print("Initial hypothesis:", hypothesis, "\n")
+
+    for i, row in enumerate(rows, start=1):
+        *attrs, target = row
+        print(f"Example {i}: {attrs} -> {target}")
+
+        if target.strip() == positive_label:
+            for j, value in enumerate(attrs):
+                if hypothesis[j] == "0":
+                    hypothesis[j] = value          # first positive: copy it
+                elif hypothesis[j] != value:
+                    hypothesis[j] = "?"            # mismatch: generalize
+        else:
+            print("   (negative example -> ignored by FIND-S)")
+
+        print(f"   Hypothesis after example {i}: {hypothesis}\n")
+
+    return hypothesis
+
+
+if __name__ == "__main__":
+    # To use your own CSV: header, rows = load_data("training_data.csv")
+    header, rows = load_data()
+
+    print("Attributes:", header[:-1])
+    print("Training examples:", len(rows), "\n")
+
+    final = find_s(rows)
+
+    print("=" * 50)
+    print("Most specific hypothesis found by FIND-S:")
+    print(final)
+     
+Attributes: ['Sky', 'AirTemp', 'Humidity', 'Wind', 'Water', 'Forecast']
+Training examples: 4 
+
+Initial hypothesis: ['0', '0', '0', '0', '0', '0'] 
+
+Example 1: ['Sunny', 'Warm', 'Normal', 'Strong', 'Warm', 'Same'] -> Yes
+   Hypothesis after example 1: ['Sunny', 'Warm', 'Normal', 'Strong', 'Warm', 'Same']
+
+Example 2: ['Sunny', 'Warm', 'High', 'Strong', 'Warm', 'Same'] -> Yes
+   Hypothesis after example 2: ['Sunny', 'Warm', '?', 'Strong', 'Warm', 'Same']
+
+Example 3: ['Rainy', 'Cold', 'High', 'Strong', 'Warm', 'Change'] -> No
+   (negative example -> ignored by FIND-S)
+   Hypothesis after example 3: ['Sunny', 'Warm', '?', 'Strong', 'Warm', 'Same']
+
+Example 4: ['Sunny', 'Warm', 'High', 'Strong', 'Cool', 'Change'] -> Yes
+   Hypothesis after example 4: ['Sunny', 'Warm', '?', 'Strong', '?', '?']
+
+==================================================
+Most specific hypothesis found by FIND-S:
+['Sunny', 'Warm', '?', 'Strong',
+
+Attributes: ['Sky', 'AirTemp', 'Humidity', 'Wind', 'Water', 'Forecast']
+Training examples: 4 
+
+Initial hypothesis: ['0', '0', '0', '0', '0', '0'] 
+
+Example 1: ['Sunny', 'Warm', 'Normal', 'Strong', 'Warm', 'Same'] -> Yes
+   Hypothesis after example 1: ['Sunny', 'Warm', 'Normal', 'Strong', 'Warm', 'Same']
+
+Example 2: ['Sunny', 'Warm', 'High', 'Strong', 'Warm', 'Same'] -> Yes
+   Hypothesis after example 2: ['Sunny', 'Warm', '?', 'Strong', 'Warm', 'Same']
+
+Example 3: ['Rainy', 'Cold', 'High', 'Strong', 'Warm', 'Change'] -> No
+   (negative example -> ignored by FIND-S)
+   Hypothesis after example 3: ['Sunny', 'Warm', '?', 'Strong', 'Warm', 'Same']
+
+Example 4: ['Sunny', 'Warm', 'High', 'Strong', 'Cool', 'Change'] -> Yes
+   Hypothesis after example 4: ['Sunny', 'Warm', '?', 'Strong', '?', '?']
+
+==================================================
+Most specific hypothesis found by FIND-S:
+['Sunny', 'Warm', '?', 'Strong', '?', '?'
