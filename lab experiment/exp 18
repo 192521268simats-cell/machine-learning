@@ -1,0 +1,52 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import Perceptron
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+
+iris = load_iris()
+X_train, X_test, y_train, y_test = train_test_split(
+    iris.data, iris.target, test_size=0.2, random_state=42, stratify=iris.target)
+
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+model = Perceptron(max_iter=1000, eta0=0.1, random_state=42)
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+
+print("Accuracy:", round(accuracy_score(y_test, y_pred), 4))
+print("Confusion matrix:\n", confusion_matrix(y_test, y_pred))
+print("\nClassification report:\n",
+      classification_report(y_test, y_pred, target_names=iris.target_names))
+
+# Single perceptron from scratch: Setosa vs Not-Setosa
+X_all = StandardScaler().fit_transform(iris.data)
+y_bin = np.where(iris.target == 0, 1, 0)
+w = np.zeros(X_all.shape[1])
+b = 0.0
+lr = 0.1
+errors_per_epoch = []
+for epoch in range(20):
+    errors = 0
+    for xi, target in zip(X_all, y_bin):
+        prediction = 1 if np.dot(xi, w) + b >= 0 else 0
+        update = lr * (target - prediction)
+        w += update * xi
+        b += update
+        errors += int(update != 0)
+    errors_per_epoch.append(errors)
+print("\nFrom-scratch perceptron (Setosa vs others)")
+print("Misclassifications per epoch:", errors_per_epoch)
+final_pred = (X_all @ w + b >= 0).astype(int)
+print("Final accuracy:", round(np.mean(final_pred == y_bin), 4))
+
+plt.plot(range(1, 21), errors_per_epoch, marker="o")
+plt.xlabel("Epoch")
+plt.ylabel("Number of errors")
+plt.title("Perceptron learning (Setosa vs others)")
+plt.show()
+     
