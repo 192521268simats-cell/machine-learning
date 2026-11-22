@@ -1,0 +1,50 @@
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+
+rng = np.random.default_rng(7)
+n = 1500
+df = pd.DataFrame({
+    "Age": rng.integers(18, 70, n),
+    "AnnualIncome": rng.normal(50000, 20000, n).clip(10000, 150000),
+    "NumBankAccounts": rng.integers(1, 10, n),
+    "NumCreditCards": rng.integers(1, 10, n),
+    "InterestRate": rng.integers(2, 35, n),
+    "NumDelayedPayments": rng.integers(0, 25, n),
+    "OutstandingDebt": rng.uniform(0, 5000, n),
+    "CreditUtilization": rng.uniform(10, 50, n),
+})
+score = (df["AnnualIncome"] / 1000 * 0.4 - df["NumDelayedPayments"] * 2.0
+         - df["InterestRate"] * 0.8 - df["OutstandingDebt"] / 500
+         - df["CreditUtilization"] * 0.3 + rng.normal(0, 3, n))
+df["CreditScore"] = pd.qcut(score, 3, labels=["Poor", "Standard", "Good"])
+df.to_csv("credit_score.csv", index=False)
+
+df = pd.read_csv("credit_score.csv")
+print(df.head(), "\n")
+print("Class distribution:\n", df["CreditScore"].value_counts(), "\n")
+
+X = df.drop("CreditScore", axis=1)
+y = df["CreditScore"]
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y)
+
+model = RandomForestClassifier(n_estimators=200, random_state=42)
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+
+print("Accuracy:", round(accuracy_score(y_test, y_pred), 4))
+print("Confusion matrix:\n", confusion_matrix(y_test, y_pred, labels=["Poor", "Standard", "Good"]))
+print("\nClassification report:\n", classification_report(y_test, y_pred))
+
+importance = pd.Series(model.feature_importances_, index=X.columns).sort_values(ascending=False)
+print("Feature importance:\n", importance.round(4))
+
+new_customer = pd.DataFrame([{
+    "Age": 35, "AnnualIncome": 70000, "NumBankAccounts": 3, "NumCreditCards": 4,
+    "InterestRate": 8, "NumDelayedPayments": 2, "OutstandingDebt": 500,
+    "CreditUtilization": 25}])
+print("\nPredicted credit score for a new customer:", model.predict(new_customer)[0])
+     
