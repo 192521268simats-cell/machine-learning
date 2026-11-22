@@ -1,0 +1,53 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+
+data = load_breast_cancer()
+X_train, X_test, y_train, y_test = train_test_split(
+    data.data, data.target, test_size=0.25, random_state=42, stratify=data.target)
+
+models = {
+    "Logistic Regression": make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000)),
+    "KNN": make_pipeline(StandardScaler(), KNeighborsClassifier(n_neighbors=5)),
+    "SVM": make_pipeline(StandardScaler(), SVC()),
+    "Decision Tree": DecisionTreeClassifier(random_state=42),
+    "Random Forest": RandomForestClassifier(n_estimators=200, random_state=42),
+    "Naive Bayes": GaussianNB(),
+}
+
+results = []
+for name, model in models.items():
+    model.fit(X_train, y_train)
+    pred = model.predict(X_test)
+    cv = cross_val_score(model, data.data, data.target, cv=5).mean()
+    results.append({
+        "Model": name,
+        "Accuracy": accuracy_score(y_test, pred),
+        "Precision": precision_score(y_test, pred),
+        "Recall": recall_score(y_test, pred),
+        "F1-score": f1_score(y_test, pred),
+        "5-fold CV": cv,
+    })
+
+table = pd.DataFrame(results).set_index("Model").round(4)
+print(table.sort_values("Accuracy", ascending=False))
+print("\nBest model by accuracy:", table["Accuracy"].idxmax())
+
+table[["Accuracy", "F1-score", "5-fold CV"]].plot(kind="bar", figsize=(10, 5))
+plt.ylim(0.85, 1.0)
+plt.title("Comparison of Classification Algorithms")
+plt.ylabel("Score")
+plt.xticks(rotation=30)
+plt.tight_layout()
+plt.show()
+     
