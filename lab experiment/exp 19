@@ -1,0 +1,54 @@
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.naive_bayes import GaussianNB
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+
+rng = np.random.default_rng(21)
+n = 1000
+df = pd.DataFrame({
+    "Gender": rng.choice(["Male", "Female"], n),
+    "Married": rng.choice(["Yes", "No"], n),
+    "Education": rng.choice(["Graduate", "Not Graduate"], n, p=[0.75, 0.25]),
+    "SelfEmployed": rng.choice(["Yes", "No"], n, p=[0.15, 0.85]),
+    "ApplicantIncome": rng.normal(5000, 2000, n).clip(1500, 20000).round(),
+    "LoanAmount": rng.normal(150, 60, n).clip(30, 500).round(),
+    "CreditHistory": rng.choice([0, 1], n, p=[0.2, 0.8]),
+})
+score = (df["CreditHistory"] * 3 + df["ApplicantIncome"] / 3000
+         - df["LoanAmount"] / 100 + (df["Education"] == "Graduate") * 0.5
+         + rng.normal(0, 0.7, n))
+df["LoanStatus"] = np.where(score > 2.5, "Y", "N")
+df.to_csv("bank_loan.csv", index=False)
+
+df = pd.read_csv("bank_loan.csv")
+print(df.head(), "\n")
+print("Missing values:", int(df.isnull().sum().sum()), "\n")
+
+for col in ["Gender", "Married", "Education", "SelfEmployed"]:
+    df[col] = pd.factorize(df[col])[0]
+df["LoanStatus"] = df["LoanStatus"].map({"Y": 1, "N": 0})
+
+X = df.drop("LoanStatus", axis=1)
+y = df["LoanStatus"]
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.25, random_state=42, stratify=y)
+
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+model = GaussianNB()
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+
+print("Accuracy:", round(accuracy_score(y_test, y_pred), 4))
+print("Confusion matrix:\n", confusion_matrix(y_test, y_pred))
+print("\nClassification report:\n",
+      classification_report(y_test, y_pred, target_names=["Rejected", "Approved"]))
+
+applicant = pd.DataFrame([[0, 1, 0, 1, 6000, 120, 1]], columns=X.columns)
+result = model.predict(scaler.transform(applicant))[0]
+print("Loan decision for new applicant:", "Approved" if result == 1 else "Rejected")
+     
